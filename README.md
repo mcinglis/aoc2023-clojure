@@ -3,8 +3,8 @@
 This repository contains [Advent of Code 2023][aoc2023] solutions in
 [Clojure][].
 
-- [`src/`](/src/) contains the solution code.
-- [`test/`](/test/) contains the solution tests.
+- [`src/`](/src/au/id/minglis/aoc2023) contains the solution code.
+- [`test/`](/test/au/id/minglis/aoc2023) contains the solution tests.
 - [`resources/`](/resources/) contains the problems' input data.
 
 For tooling, this project uses:
@@ -12,8 +12,8 @@ For tooling, this project uses:
 - a [tasks](/tasks) script for providing common project commands, such as
   `./tasks build` and `./tasks run`; run just `./tasks` for help.
 - a [Containerfile](/Containerfile) providing a reference build environment.
-- a [deps.edn](/deps.edn) file per [Clojure's Deps](clojure-deps) for
-  specifying `clj` CLI aliases like `main` and `test`.
+- a [deps.edn](/deps.edn) file per [Clojure's Deps functionality][clojure-deps]
+  for specifying `clj` CLI aliases like `main` and `test`.
 - [cognitect.test-runner][test-runner] for discovering and running the tests.
 
 Example interaction:
@@ -37,6 +37,12 @@ Day 1: [55538]
 [clojure]: https://clojure.org/
 [clojure-deps]: https://clojure.org/guides/deps_and_cli
 [test-runner]: https://github.com/cognitect-labs/test-runner
+
+## Todo
+
+- [ ] Catch up on advent problems.
+- [ ] Set up linting, run on build.
+- [ ] Set up GitHub/GitLab workflows.
 
 ## License
 
