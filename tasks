@@ -1,0 +1,106 @@
+#!/bin/sh -eu
+
+# Copyright (C) 2023  Malcolm Inglis <me@minglis.id.au>
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# This software is licensed under the terms of the GNU AGPLv3 License
+# as provided in the package's LICENSE file, or otherwise available at
+# <https://www.gnu.org/licenses/agpl-3.0.txt>. As described therein,
+# this code is provided WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+for container_cli in "${CONTAINER_CLI:-}" podman nerdctl finch docker; do
+    if command -v "$container_cli" >/dev/null; then
+        break
+    fi
+done
+
+image_tag="${IMAGE_TAG:-minglis.id.au/aoc2023-clojure:latest}"
+
+## build
+##   Build and tag the container image.
+task_build() {
+    "$container_cli" build --tag "$image_tag" "$@" "$SCRIPT_DIR"
+}
+
+## run
+##   Build, tag, and run the container image.
+task_run() {
+    if [ -z "$("$container_cli" images -q "$image_tag")" ]; then
+        task_build
+    fi
+    "$container_cli" run --rm "$image_tag" "$@"
+}
+
+## shell [container-id]
+##   Launch an interactive shell with the project directory as a volume mount.
+task_shell() {
+    if [ -z "$("$container_cli" images -q "$image_tag")" ]; then
+        task_build
+    fi
+    "$container_cli" run \
+        --rm --interactive --tty \
+        --volume "$SCRIPT_DIR":/app \
+        "${1:-$image_tag}" \
+        bash
+}
+
+## clean
+##   Remove the built container images.
+task_clean() {
+    "$container_cli" rmi --force "$image_tag"
+}
+
+## help
+##   Print available options and tasks.
+task_help() {
+    cat <<EOF
+$0 [OPTION..] [--] TASK [ARG..]
+
+Options:
+    -v, --verbose           Enable verbose output.
+
+Tasks:
+$(<"$0" sed -n '/^## /p' | sed 's/^## /    /')
+
+EOF
+}
+
+main() {
+    VERBOSE_OUT='/dev/null'
+
+    for arg; do
+        case "$arg" in
+            --)
+                shift
+                break
+                ;;
+            -v|--verbose)
+                export VERBOSE=1
+                VERBOSE_OUT='/dev/stderr'
+                shift
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+    if ! [ -f "$SCRIPT_DIR/tasks" ]; then
+        printf >&2 'error: could not resolve script directory.'
+    fi
+
+    if [ $# -eq 0 ]; then
+        task_help
+    else
+        task="$1"
+        shift
+        if [ "${VERBOSE-0}" -eq 1 ]; then
+            set -x
+        fi
+        "task_$task" "$@"
+    fi
+}
+
+main "$@"
