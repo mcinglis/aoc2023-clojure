@@ -18,7 +18,7 @@
        (map (fn [line] (->> line
                             (re-seq #"\d")
                             (#(str (first %) (last %)))
-                            (Integer/parseInt))))
+                            (parse-long))))
        (apply +)))
 
 (def numeric-words {"one" "1"
@@ -39,14 +39,14 @@
   [lines]
   (->> lines
        (map (fn [line]
+              ; Find all numeric parts, potentially overlapping:
               (->> (let [m (re-matcher numeric-pattern line)]
-                     ; Find all numeric words, potentially overlapping:
                      (loop [i 0 words []]
                        (if (.find m i)
                          (recur (inc (.start m))
                                 (conj words (.group m)))
                          words)))
-                   ; Turn numeric words into their number equivalent:
+                   ; Turn numeric words into their digit equivalent:
                    (map #(or (numeric-words %) %))
                    ; Combine back into a singular string:
                    (apply str))))
