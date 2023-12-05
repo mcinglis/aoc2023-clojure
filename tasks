@@ -58,7 +58,7 @@ task_help() {
 $0 [OPTION..] [--] TASK [ARG..]
 
 Options:
-    -v, --verbose           Enable verbose output.
+    -v, --verbose        Enable verbose output.
 
 Tasks:
 $(<"$0" sed -n '/^## /p' | sed 's/^## /    /')
