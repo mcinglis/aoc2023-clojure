@@ -7,9 +7,9 @@
 ; this code is provided WITHOUT ANY WARRANTY; without even the implied
 ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-(ns au.id.minglis.aoc2023.day1-test
+(ns au.id.minglis.aoc2023.day01-test
   (:require [clojure.test :refer :all]
-            [au.id.minglis.aoc2023.day1 :as m]))
+            [au.id.minglis.aoc2023.day01 :as m]))
 
 (deftest test-calibration-values-sum-part1
   (are [expected lines]

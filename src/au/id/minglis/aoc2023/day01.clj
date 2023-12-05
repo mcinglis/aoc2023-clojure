@@ -7,7 +7,7 @@
 ; this code is provided WITHOUT ANY WARRANTY; without even the implied
 ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-(ns au.id.minglis.aoc2023.day1
+(ns au.id.minglis.aoc2023.day01
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
@@ -53,7 +53,7 @@
        (calibration-values-sum-part1)))
 
 (defn compute-answers []
-  (with-open [reader (->> "inputs/day1.txt"
+  (with-open [reader (->> "inputs/day01.txt"
                           io/resource
                           io/reader)]
     (let [lines (line-seq reader)]

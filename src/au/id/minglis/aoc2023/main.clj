@@ -8,8 +8,10 @@
 ; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 (ns au.id.minglis.aoc2023.main
-  (:require au.id.minglis.aoc2023.day1))
+  (:require [au.id.minglis.aoc2023.day01 :as day01]
+            [au.id.minglis.aoc2023.day02 :as day02]))
 
 (defn -main [& args]
-  (println (str "Day 1: " (au.id.minglis.aoc2023.day1/compute-answers))))
+  (println (str "Day 2: " (day02/compute-answers)))
+  (println (str "Day 1: " (day01/compute-answers))))
 
