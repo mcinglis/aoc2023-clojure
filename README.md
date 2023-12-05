@@ -23,14 +23,15 @@ $ ./tasks
 
 $ ./tasks build
 ...
-Ran 2 tests containing 2 assertions.
+Ran 6 tests containing 14 assertions.
 0 failures, 0 errors.
 ...
 Successfully tagged minglis.id.au/aoc2023-clojure:latest
-9cfa47f1f42ebf5f661422bc9257f960e3b858e3112ed17c3a3e2d451d208b1b
+8f08acb2c9b479fa02a4876f2ef19bf49324d0c6b6a830b5570d80fa545c64fa
 
 $ ./tasks run
-Day 1: [55538]
+Day 2: [2541 66016]
+Day 1: [55538 54875]
 ```
 
 [aoc2023]: https://adventofcode.com/2023
@@ -43,6 +44,7 @@ Day 1: [55538]
 - [ ] Catch up on advent problems.
 - [ ] Set up linting, run on build.
 - [ ] Set up GitHub/GitLab workflows.
+- [ ] Review other Clojure AoC 2023 solutions.
 
 ## License
 
