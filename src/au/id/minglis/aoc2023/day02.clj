@@ -15,10 +15,8 @@
   (->> s
        (#(str/split % #", "))
        (map (fn [sel]
-              (let [[_ sel-count sel-color]
-                    (re-matches #"(\d+) (\w+)" sel)]
-                {sel-color
-                 (parse-long sel-count)})))
+              (let [[_ cnt color] (re-matches #"(\d+) (\w+)" sel)]
+                {color (parse-long cnt)})))
        (apply merge)))
 
 (defn parse-game [s]
@@ -50,24 +48,21 @@
        (apply +)))
 
 (defn game-minimum-cubes [game]
-  (->> ["red" "green" "blue"]
-       (map (fn [color]
-              {color (->> game
-                          :game/rounds
-                          (map #(or (% color) 0))
-                          (apply max))}))
-       (apply merge)))
+  (map (fn [color]
+         (->> game
+              :game/rounds
+              (map #(or (% color) 0))
+              (apply max)))
+       ["red" "green" "blue"]))
 
 (defn games-minimum-cubes-power-sum
   "Implements the core solution for Day 2 Part 2."
   [lines]
   (->> lines
-       (map (fn [line]
-              (->> line
-                   (parse-game)
-                   (game-minimum-cubes)
-                   (vals)
-                   (apply *))))
+       (map #(->> %
+                  (parse-game)
+                  (game-minimum-cubes)
+                  (apply *)))
        (apply +)))
 
 (defn compute-answers []
