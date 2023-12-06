@@ -23,14 +23,18 @@ $ ./tasks
 
 $ ./tasks build
 ...
-Ran 6 tests containing 14 assertions.
+Ran 9 tests containing 17 assertions.
 0 failures, 0 errors.
 ...
 Successfully tagged minglis.id.au/aoc2023-clojure:latest
 8f08acb2c9b479fa02a4876f2ef19bf49324d0c6b6a830b5570d80fa545c64fa
 
 $ ./tasks run
+"Elapsed time: 44.12044 msecs"
+Day 3: [535351 87287096]
+"Elapsed time: 9.500649 msecs"
 Day 2: [2541 66016]
+"Elapsed time: 15.8538 msecs"
 Day 1: [55538 54875]
 ```
 
