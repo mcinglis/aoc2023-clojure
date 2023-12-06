@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 
 # Copyright (C) 2023  Malcolm Inglis <me@minglis.id.au>
 # SPDX-License-Identifier: AGPL-3.0-only
@@ -9,97 +9,220 @@
 # this code is provided WITHOUT ANY WARRANTY; without even the implied
 # warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-for container_cli in "${CONTAINER_CLI:-}" podman nerdctl finch docker; do
-    if command -v "$container_cli" >/dev/null; then
+set -eu
+
+_abort() {
+    for arg in "$@"; do printf >&2 'error: %s\n' "$arg"; done
+    exit 1
+}
+
+# ## Environment variables
+
+SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+if ! [ -f "$SCRIPT_DIR/tasks" ]; then
+    _abort 'could not resolve script directory'
+fi
+
+for c in "${CONTAINER_CLI:-}" podman nerdctl finch docker; do
+    if command -v "$c" >/dev/null; then
+        CONTAINER_CLI=$c
         break
     fi
 done
 
-image_tag="${IMAGE_TAG:-minglis.id.au/aoc2023-clojure:latest}"
+_image_tag_default="minglis.id.au/aoc2023-clojure:latest"
+IMAGE_TAG="${IMAGE_TAG:-$_image_tag_default}"
 
-## build
+# ## Task functions
+
+## build [CONTAINER-BUILD-OPTION]...
 ##   Build and tag the container image.
 task_build() {
-    "$container_cli" build --tag "$image_tag" "$@" "$SCRIPT_DIR"
+    "$CONTAINER_CLI" build \
+        "$@" \
+        --tag "$IMAGE_TAG" \
+        "$SCRIPT_DIR"
 }
 
-## run
-##   Build, tag, and run the container image.
+## run [CONTAINER-RUN-OPTION]... [-- [CONTAINER-CMD]...]
+##   Run the tagged container image.
 task_run() {
-    if [ -z "$("$container_cli" images -q "$image_tag")" ]; then
-        task_build
+    saw_separator=
+    for arg in "$@"; do
+        if [ "$arg" = "--" -a -z "$saw_separator" ]; then
+            saw_separator=1
+            arg="$IMAGE_TAG"
+        fi
+        set -- "$@" "$arg"
+        shift
+    done
+    # If we didn't see a separator (i.e. between the run options and the
+    # container), we can just append the image tag to the processed arguments,
+    # which are thus just run options:
+    if [ -z "$saw_separator" ]; then
+        set -- "$@" "$IMAGE_TAG"
     fi
-    "$container_cli" run --rm "$image_tag" "$@"
-}
-
-## shell [container-id]
-##   Launch an interactive shell with the project directory as a volume mount.
-task_shell() {
-    if [ -z "$("$container_cli" images -q "$image_tag")" ]; then
-        task_build
-    fi
-    "$container_cli" run \
+    _build_if_needed
+    "$CONTAINER_CLI" run \
         --rm --interactive --tty \
-        --volume "$SCRIPT_DIR":/app \
-        "${1:-$image_tag}" \
-        bash
+        "$@"
 }
 
-## clean
-##   Remove the built container images.
-task_clean() {
-    "$container_cli" rmi --force "$image_tag"
+## runv [CONTAINER-RUN-OPTION]... [-- [CONTAINER-CMD]...
+##   Run the tagged container image with the project directory mounted over the
+##   container's app directory.
+task_runv() {
+    task_run --volume "$SCRIPT_DIR":/app:z "$@"
 }
 
-## help
-##   Print available options and tasks.
-task_help() {
-    cat <<EOF
-$0 [OPTION..] [--] TASK [ARG..]
-
-Options:
-    -v, --verbose           Enable verbose output.
-
-Tasks:
-$(<"$0" sed -n '/^## /p' | sed 's/^## /    /')
-
-EOF
+## testv [CONTAINER-RUN-OPTION]...
+##   Run the tests in the tagged container image with the project directory
+##   mounted over the container's app directory.
+task_testv() {
+    task_runv "$@" -- clojure -X:test
 }
 
-main() {
-    VERBOSE_OUT='/dev/null'
+## sh [CONTAINER-RUN-OPTION]...
+##   Run bash in the tagged container image.
+task_sh() {
+    task_run "$@" -- /bin/bash
+}
 
-    for arg; do
+## shv [CONTAINER-RUN-OPTION]...
+##   Run bash in the tagged container image with the project directory mounted
+##   over the container's app directory.
+task_shv() {
+    task_runv "$@" -- /bin/bash
+}
+
+## repl [DAY] [--] [CONTAINER-RUN-OPTION]...
+##   Runs a Clojure REPL in the tagged container image; if a DAY is given (such
+##   as `./tasks repl 01`), the REPL starts with that day's package required
+##   with `:refer :all`, and its test package required with `:as t`. Run
+##   `(refresh)` to refresh the packages' code.
+task_repl() {
+    day=
+    for arg in "$@"; do
         case "$arg" in
             --)
                 shift
                 break
                 ;;
-            -v|--verbose)
-                export VERBOSE=1
-                VERBOSE_OUT='/dev/stderr'
+            *)
+                # If we already have a day processed, this must be a container
+                # run option, so just stop processing args:
+                [ -z "$day" ] || break
+                day="$arg"
+                # Otherwise, add arguments to start a REPL in the given day's
+                # namespace:
+                set -- "$@" -- \
+                    clj -M:repl \
+                        --init "dev/repl.clj" \
+                        --eval "(require-day-packages \"$day\")" \
+                        --repl
                 shift
                 ;;
-            *)
+        esac
+    done
+    # If we didn't process a day argument, then just start a regular REPL:
+    if [ -z "$day" ]; then
+        set -- "$@" -- clj -M:repl --repl
+    fi
+    task_run "$@"
+}
+
+## replv [DAY] [CONTAINER-RUN-OPTION]...
+##   Runs a Clojure REPL in the tagged container image with the project
+##   directory mounted over the container's app directory. If a DAY is given
+##   (such as `./tasks repl 01`), the REPL starts with that day's package required
+##   required with `:refer :all`, and its test package required with `:as t`.
+##   Run `(refresh)` to refresh the packages' code.
+task_replv() {
+    task_repl "$@" -- --volume "$SCRIPT_DIR":/app:z
+}
+
+## clean [CONTAINER-RMI-OPTION]...
+##   Remove the tagged container images.
+task_clean() {
+    "$CONTAINER_CLI" rmi --force "$@" "$IMAGE_TAG"
+}
+
+task_help() {
+    _echo_usage
+}
+
+# ## Helper functions
+
+_build_if_needed() {
+    if [ -z "$("$CONTAINER_CLI" images -q "$IMAGE_TAG")" ]; then
+        task_build
+    fi
+}
+
+_abort_usage() {
+    _echo_usage >&2
+    _abort
+}
+
+_echo_usage() {
+    cat <<EOF
+Usage: $0 TASK [OPTION]... [--] [TASK-ARG]...
+Provides common tasks for the aoc2023-clojure project.
+
+Environment variables:
+  CONTAINER_CLI         Docker-compatible container engine CLI.
+                        (default: podman > nerdctl > finch > docker)
+  IMAGE_TAG             The container image tag to use in tasks.
+                        (default: $_image_tag_default)
+
+Options:
+  -v, --verbose         Enable verbose output.
+      --help            Display this help and exit.
+
+Tasks:
+$(<"$0" sed -n '/^## /p' | sed 's/^## /  /')
+
+Project website: <https://github.com/mcinglis/aoc2023-clojure>
+EOF
+}
+
+# ## Main function
+
+main() {
+    saw_separator=
+    task_name=
+    for arg in "$@"; do
+        case "$arg" in
+            --)
+                # Only remove the separator arg if we're yet to see a task
+                # name argument (this allows `./tasks t -- args` to work):
+                if [ -z "$task_name" ]; then
+                    shift
+                fi
                 break
+                ;;
+            -v|--verbose)
+                set -x
+                shift
+                ;;
+            --help)
+                _echo_usage
+                return 0
+                ;;
+            *)
+                if [ -n "$task_name" ]; then
+                    break;
+                fi
+                task_name="$arg"
+                shift
                 ;;
         esac
     done
 
-    SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
-    if ! [ -f "$SCRIPT_DIR/tasks" ]; then
-        printf >&2 'error: could not resolve script directory.'
-    fi
-
-    if [ $# -eq 0 ]; then
-        task_help
+    if [ -n "$task_name" ]; then
+        "task_$task_name" "$@"
     else
-        task="$1"
-        shift
-        if [ "${VERBOSE-0}" -eq 1 ]; then
-            set -x
-        fi
-        "task_$task" "$@"
+        _abort_usage
     fi
 }
 

@@ -19,7 +19,7 @@ For tooling, this project uses:
 Example interaction:
 
 ```
-$ ./tasks
+$ ./tasks --help
 
 $ ./tasks build
 ...
@@ -46,6 +46,7 @@ Day 1: [55538 54875]
 ## Todo
 
 - [ ] Catch up on advent problems.
+- [ ] have `./tasks run` use `--` to separate run opts from container opts
 - [ ] Set up linting, run on build.
 - [ ] Set up GitHub/GitLab workflows.
 - [ ] Review other Clojure AoC 2023 solutions.

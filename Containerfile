@@ -9,19 +9,26 @@ RUN \
     curl \
     git \
     java-latest-openjdk-headless \
-    rlwrap
+    rlwrap && \
+  dnf -y clean all
 
 # Install Clojure (per https://clojure.org/guides/install_clojure):
 RUN \
   curl -L -O https://github.com/clojure/brew-install/releases/latest/download/linux-install.sh && \
   chmod +x linux-install.sh && \
-  ./linux-install.sh
+  ./linux-install.sh && \
+  clojure --version
 
 WORKDIR /app
+
+COPY deps.edn .
+RUN clojure -P -T:repl:test
+
 COPY . .
 
 RUN \
-  clj -X:test && \
-  clj -X:main
+  clojure -X:test && \
+  echo && \
+  clojure -X:main
 
-CMD clj -X:main
+CMD clojure -X:main
