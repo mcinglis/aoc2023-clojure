@@ -96,9 +96,9 @@ task_shv() {
 }
 
 ## repl [DAY] [--] [CONTAINER-RUN-OPTION]...
-##   Runs a Clojure REPL in the tagged container image; if a DAY is given (such
+##   Run a Clojure REPL in the tagged container image; if a DAY is given (such
 ##   as `./tasks repl 01`), the REPL starts with that day's package required
-##   with `:refer :all`, and its test package required with `:as t`. Run
+##   with `:refer :all`, and its test package required with `:as t`. You can
 ##   `(refresh)` to refresh the packages' code.
 task_repl() {
     day=
@@ -132,11 +132,11 @@ task_repl() {
 }
 
 ## replv [DAY] [CONTAINER-RUN-OPTION]...
-##   Runs a Clojure REPL in the tagged container image with the project
+##   Run a Clojure REPL in the tagged container image with the project
 ##   directory mounted over the container's app directory. If a DAY is given
 ##   (such as `./tasks repl 01`), the REPL starts with that day's package required
 ##   required with `:refer :all`, and its test package required with `:as t`.
-##   Run `(refresh)` to refresh the packages' code.
+##   You can `(refresh)` to refresh the packages' code.
 task_replv() {
     task_repl "$@" -- --volume "$SCRIPT_DIR":/app:z
 }
